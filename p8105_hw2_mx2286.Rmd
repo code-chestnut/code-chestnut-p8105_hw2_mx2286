@@ -6,16 +6,122 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
 
 usethis::use_git_config(user.name = "code-chestnut", user.email = "williamxie0809@gmail.com")
 
+usethis::create_github_token()
+gitcreds::gitcreds_set()
+
 ```
+### Problem 1
 
 ```{r}
 library(tidyverse)
-
-NYC_df = 
-	read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv", na = c("NA", ".", ""))
+library(readxl)
+trans_ent = 
+	read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+col_types = cols(Route8 = "c", Route9 = "c", Route10 = "c", Route11 = "c")) |> 
+  janitor::clean_names() |> 
+  select(
+    line, station_name, station_latitude, station_longitude, 
+    starts_with("route"), entry, exit_only, vending, entrance_type, 
+    ada) |> 
+  mutate(entry = ifelse(entry == "YES", TRUE, FALSE))
 ```
+
+```{r}
+trans_ent |> 
+  select(station_name, line) |> 
+  distinct()
+```
+
+The next code chunk is similar, but filters according to ADA compliance as an initial step. This produces a dataframe in which the number of rows is the number of ADA compliant stations. 
+
+```{r}
+trans_ent |> 
+  filter(ada == TRUE) |> 
+  select(station_name, line) |> 
+  distinct()
+```
+
+```{r}
+trans_ent |> 
+  filter(vending == "NO") |> 
+  pull(entry) |> 
+  mean()
+```
+
+
+```{r}
+trans_ent |> 
+  pivot_longer(
+    route1:route11,
+    names_to = "route_num",
+    values_to = "route") |> 
+  filter(route == "A") |> 
+  select(station_name, line) |> 
+  distinct()
+
+trans_ent |> 
+  pivot_longer(
+    route1:route11,
+    names_to = "route_num",
+    values_to = "route") |> 
+  filter(route == "A", ada == TRUE) |> 
+  select(station_name, line) |> 
+  distinct()
+```
+### Problem 2
+
+
+```{r}
+Mr_Trashwheel = read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  mutate(sports_balls = as.integer(round(sports_balls, 0)),
+         source = "Mr. Trash Wheel")
+
+Professor_Trashwheel = read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  select(dumpster, month, year, date, weight_tons , volume_cubic_yards,
+         plastic_bottles, polystyrene, cigarette_butts, glass_bottles, plastic_bags, wrappers, homes_powered) |> 
+  mutate(year = as.character(year),  # Convert year to character for consistency
+         source = "Professor Trash Wheel")
+ 
+Gwynnda_Trashwheel = read_excel("202409 Trash Wheel Collection Data.xlsx", sheet = 4, skip = 1) |> 
+  janitor::clean_names() |> 
+  filter(!is.na(dumpster)) |> 
+  select(dumpster, month, year, date, weight_tons, volume_cubic_yards,
+         plastic_bottles, polystyrene, cigarette_butts, plastic_bags, wrappers, homes_powered) |> 
+  mutate(year = as.character(year),  # Convert year to character for consistency
+         source = "Gwynnda")
+```
+
+```{r}
+# Combine all datasets into one tidy dataset
+Combined_Trashwheel = bind_rows(Mr_Trashwheel, Professor_Trashwheel, Gwynnda_Trashwheel)
+
+glimpse(Combined_Trashwheel)
+
+```
+```{r}
+# Total weight of trash collected by Professor Trash Wheel
+total_weight_professor = Combined_Trashwheel |> 
+  filter(source == "Professor Trash Wheel") |> 
+  summarise(Total_Weight_Tons = sum(weight_tons, na.rm = TRUE))
+
+total_weight_professor
+
+```
+```{r}
+# Total cigarette butts collected by Gwynnda in June 2022
+total_cig_butts_gwynnda = Combined_Trashwheel |> 
+  filter(source == "Gwynnda", year == "2022", month == "June") |> 
+  summarise(Total_Cigarette_Butts = sum(cigarette_butts, na.rm = TRUE))
+total_cig_butts_gwynnda
+```
+The combined dataset contains 1033 observations from Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. Each row represents a specific dumpster load, with variables capturing important details such as weight_tons, volume_cubic_yards, plastic_bottles, cigarette_butts, and homes_powered. From the available data, the total weight of trash collected by Professor Trash Wheel was 246.74 tons. In June 2022, Gwynnda collected 18120 cigarette butts.
+
 
