@@ -1,0 +1,21 @@
+---
+title: "p8105_hw2_mx2286"
+author: "Mingye Xie"
+date: "2024-10-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+usethis::use_git_config(user.name = "code-chestnut", user.email = "williamxie0809@gmail.com")
+
+```
+
+```{r}
+library(tidyverse)
+
+NYC_df = 
+	read_csv("./NYC_Transit_Subway_Entrance_And_Exit_Data.csv", na = c("NA", ".", ""))
+```
+
