@@ -8,11 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
 
-usethis::use_git_config(user.name = "code-chestnut", user.email = "williamxie0809@gmail.com")
-
-usethis::create_github_token()
-gitcreds::gitcreds_set()
-
 ```
 ### Problem 1
 
