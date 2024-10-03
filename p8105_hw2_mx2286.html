@@ -387,9 +387,6 @@ col_types = cols(Route8 = &quot;c&quot;, Route9 = &quot;c&quot;, Route10 = &quot
 ##  9 9th St                   4 Avenue
 ## 10 Atlantic Av-Barclays Ctr 4 Avenue
 ## # ℹ 455 more rows</code></pre>
-<p>The next code chunk is similar, but filters according to ADA
-compliance as an initial step. This produces a dataframe in which the
-number of rows is the number of ADA compliant stations.</p>
 <pre class="r"><code>trans_ent |&gt; 
   filter(ada == TRUE) |&gt; 
   select(station_name, line) |&gt; 
@@ -537,6 +534,141 @@ weight_tons, volume_cubic_yards, plastic_bottles, cigarette_butts, and
 homes_powered. From the available data, the total weight of trash
 collected by Professor Trash Wheel was 246.74 tons. In June 2022,
 Gwynnda collected 18120 cigarette butts.</p>
+</div>
+<div id="problem-3" class="section level3">
+<h3>Problem 3</h3>
+<pre class="r"><code>#import data
+bakers = read_csv(&quot;./bakers.csv&quot;, na = c(&quot;NA&quot;, &quot;.&quot;, &quot;&quot;)) |&gt; 
+  janitor::clean_names() |&gt; 
+  separate(baker_name, into = c(&quot;first_name&quot;, &quot;last_name&quot;), sep = &quot; &quot;) 
+
+bakes = 
+  read_csv(&#39;./bakes.csv&#39;, na = c(&quot;NA&quot;, &quot;.&quot;, &quot;&quot;)) |&gt; 
+  janitor::clean_names() |&gt; 
+  rename(first_name=baker)
+
+results = 
+  read_csv(&#39;./results.csv&#39;, skip=2, na = c(&quot;NA&quot;, &quot;.&quot;, &quot;&quot;)) |&gt; 
+  janitor::clean_names() |&gt; 
+  rename(first_name=baker)</code></pre>
+<p>check and correct tables</p>
+<pre class="r"><code>anti_join(bakers, bakes, by = &quot;first_name&quot;)
+## # A tibble: 23 × 6
+##    first_name last_name       series baker_age baker_occupation         hometown
+##    &lt;chr&gt;      &lt;chr&gt;            &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;                    &lt;chr&gt;   
+##  1 Alice      Fevronia            10        28 Geography teacher        Essex   
+##  2 Amelia     LeBruin             10        24 Fashion designer         Halifax 
+##  3 Antony     Amourdoux            9        30 Banker                   London  
+##  4 Briony     Williams             9        33 Full-time parent         Bristol 
+##  5 Dan        Beasley-Harling      9        36 Full-time parent         London  
+##  6 Dan        Chambers            10        32 Support worker           Rotherh…
+##  7 Helena     Garcia              10        40 Online project manager   Leeds   
+##  8 Henry      Bird                10        20 Student                  Durham  
+##  9 Imelda     McCarron             9        33 Countryside recreation … County …
+## 10 Jamie      Finn                10        20 Part-time waiter         Surrey  
+## # ℹ 13 more rows
+anti_join(bakers, results, by = &quot;first_name&quot;)
+## # A tibble: 1 × 6
+##   first_name last_name series baker_age baker_occupation hometown    
+##   &lt;chr&gt;      &lt;chr&gt;      &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;            &lt;chr&gt;       
+## 1 Jo         Wheatley       2        41 Housewife        Ongar, Essex
+anti_join(bakes, results, by = c(&quot;series&quot;, &quot;episode&quot;))
+## # A tibble: 0 × 5
+## # ℹ 5 variables: series &lt;dbl&gt;, episode &lt;dbl&gt;, first_name &lt;chr&gt;,
+## #   signature_bake &lt;chr&gt;, show_stopper &lt;chr&gt;
+
+bakers|&gt;
+  mutate(first_name = ifelse(first_name == &quot;Jo&quot;,&quot;Joanne&quot;, first_name))
+## # A tibble: 120 × 6
+##    first_name last_name   series baker_age baker_occupation             hometown
+##    &lt;chr&gt;      &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;                        &lt;chr&gt;   
+##  1 Ali        Imdad            4        25 Charity worker               Saltley…
+##  2 Alice      Fevronia        10        28 Geography teacher            Essex   
+##  3 Alvin      Magallanes       6        37 Nurse                        Brackne…
+##  4 Amelia     LeBruin         10        24 Fashion designer             Halifax 
+##  5 Andrew     Smyth            7        25 Aerospace engineer           Derby /…
+##  6 Annetha    Mills            1        30 Midwife                      Essex   
+##  7 Antony     Amourdoux        9        30 Banker                       London  
+##  8 Beca       Lyne-Pirkis      4        31 Military Wives&#39; Choir Singer Aldersh…
+##  9 Ben        Frazer           2        31 Graphic Designer             Northam…
+## 10 Benjamina  Ebuehi           7        23 Teaching assistant           South L…
+## # ℹ 110 more rows</code></pre>
+<p>merge data</p>
+<pre class="r"><code>bakes_total = 
+  left_join(bakers, results, by = c(&quot;first_name&quot;,&quot;series&quot;)) |&gt; 
+  left_join(bakes, by = c(&quot;first_name&quot;, &quot;series&quot;, &quot;episode&quot;)) |&gt; 
+  relocate(series,episode,first_name,last_name, signature_bake,show_stopper,technical,result,baker_age, baker_occupation, hometown) |&gt; 
+  arrange(series, episode)</code></pre>
+<p>export</p>
+<pre class="r"><code>write_csv(bakes_total, &#39;data/bakes_tatal.csv&#39;)</code></pre>
+<p>Data Cleaning Process: I imported and cleaned three datasets
+(bakers.csv, bakes.csv, and results.csv), handling missing values and
+standardizing column names with janitor::clean_names(). In bakers.csv, I
+split baker_name into first_name and last_name to align with the other
+datasets, where I renamed the baker column to first_name. To check for
+inconsistencies, I used anti_join() and found that Joanne was recorded
+as “Jo” in some datasets, which I corrected. Additionally, I found that
+Series 9 and 10 data was missing from bakes.csv. After fixing these
+issues, I merged the datasets using left_join() on first_name, series,
+and episode, rearranged the columns, and sorted the data by series and
+episode. The final dataset was exported as bakes_total.csv.</p>
+<p>Summary of the Final Dataset: The final dataset contains information
+for Series 1 to 8, with key variables like baker_age, baker_occupation,
+signature_bake, show_stopper, technical, and results. It includes r
+ncol(bakes_total) variables and r nrow(bakes_total) observations.</p>
+<p>Issues Identified: Name inconsistency: Corrected “Jo” to “Joanne”.
+Missing data: Series 9 and 10 data were absent from bakes.csv.</p>
+<pre class="r"><code>bakes_stars =
+  bakes_total |&gt;
+  filter(series %in% c(5,6,7,8,9,10), result %in% c(&quot;STAR BAKER&quot;, &quot;WINNER&quot;))</code></pre>
+<p>In many seasons, the final winner was predictable, such as Richard
+Burr (Season 5) and Nadiya Hussain (Season 6), who were named “Star
+Baker” multiple times, while in contrast, David Atherton (Season 10) was
+a surprise winner, as he did not win any “Star Baker” titles before the
+final.</p>
+<pre class="r"><code>viewers = 
+  read_csv(&#39;./viewers.csv&#39;, na = c(&quot;NA&quot;, &quot;.&quot;, &quot;&quot;)) |&gt;
+  janitor::clean_names() |&gt; 
+  pivot_longer(
+    cols = series_1:series_10,
+    names_to = &quot;series&quot;,
+    values_to = &quot;viewer&quot;
+  ) |&gt; 
+   mutate(series = readr::parse_number(series)) |&gt;
+  relocate(series) |&gt;
+  arrange(series, episode)
+
+head(viewers, 10)
+## # A tibble: 10 × 3
+##    series episode viewer
+##     &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;
+##  1      1       1   2.24
+##  2      1       2   3   
+##  3      1       3   3   
+##  4      1       4   2.6 
+##  5      1       5   3.03
+##  6      1       6   2.75
+##  7      1       7  NA   
+##  8      1       8  NA   
+##  9      1       9  NA   
+## 10      1      10  NA
+
+viewers |&gt; 
+  filter(series == 1) |&gt; 
+  summarise(mean(viewer, na.rm = TRUE))
+## # A tibble: 1 × 1
+##   `mean(viewer, na.rm = TRUE)`
+##                          &lt;dbl&gt;
+## 1                         2.77
+
+viewers |&gt; 
+  filter(series == 5) |&gt; 
+  summarise(mean(viewer, na.rm = TRUE))
+## # A tibble: 1 × 1
+##   `mean(viewer, na.rm = TRUE)`
+##                          &lt;dbl&gt;
+## 1                         10.0</code></pre>
+<p>The average viewship in season 1 is 2.77 and season 5 is 10.0.</p>
 </div>
 
 

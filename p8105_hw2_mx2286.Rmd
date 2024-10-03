@@ -2,7 +2,7 @@
 title: "p8105_hw2_mx2286"
 author: "Mingye Xie"
 date: "2024-10-02"
-output: github_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -29,8 +29,6 @@ trans_ent |>
   select(station_name, line) |> 
   distinct()
 ```
-
-The next code chunk is similar, but filters according to ADA compliance as an initial step. This produces a dataframe in which the number of rows is the number of ADA compliant stations. 
 
 ```{r}
 trans_ent |> 
