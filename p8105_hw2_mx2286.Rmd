@@ -2,12 +2,11 @@
 title: "p8105_hw2_mx2286"
 author: "Mingye Xie"
 date: "2024-10-02"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
-
 ```
 ### Problem 1
 
@@ -119,4 +118,92 @@ total_cig_butts_gwynnda
 ```
 The combined dataset contains 1033 observations from Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. Each row represents a specific dumpster load, with variables capturing important details such as weight_tons, volume_cubic_yards, plastic_bottles, cigarette_butts, and homes_powered. From the available data, the total weight of trash collected by Professor Trash Wheel was 246.74 tons. In June 2022, Gwynnda collected 18120 cigarette butts.
 
+
+### Problem 3
+
+```{r}
+#import data
+bakers = read_csv("./bakers.csv", na = c("NA", ".", "")) |> 
+  janitor::clean_names() |> 
+  separate(baker_name, into = c("first_name", "last_name"), sep = " ") 
+
+bakes = 
+  read_csv('./bakes.csv', na = c("NA", ".", "")) |> 
+  janitor::clean_names() |> 
+  rename(first_name=baker)
+
+results = 
+  read_csv('./results.csv', skip=2, na = c("NA", ".", "")) |> 
+  janitor::clean_names() |> 
+  rename(first_name=baker)
+```
+
+check and correct tables
+
+```{r}
+anti_join(bakers, bakes, by = "first_name")
+anti_join(bakers, results, by = "first_name")
+anti_join(bakes, results, by = c("series", "episode"))
+
+bakers|>
+  mutate(first_name = ifelse(first_name == "Jo","Joanne", first_name))
+```
+
+merge data
+
+```{r}
+bakes_total = 
+  left_join(bakers, results, by = c("first_name","series")) |> 
+  left_join(bakes, by = c("first_name", "series", "episode")) |> 
+  relocate(series,episode,first_name,last_name, signature_bake,show_stopper,technical,result,baker_age, baker_occupation, hometown) |> 
+  arrange(series, episode)
+```
+
+export
+
+```{r}
+write_csv(bakes_total, 'data/bakes_tatal.csv')
+```
+Data Cleaning Process:
+I imported and cleaned three datasets (bakers.csv, bakes.csv, and results.csv), handling missing values and standardizing column names with janitor::clean_names(). In bakers.csv, I split baker_name into first_name and last_name to align with the other datasets, where I renamed the baker column to first_name. To check for inconsistencies, I used anti_join() and found that Joanne was recorded as "Jo" in some datasets, which I corrected. Additionally, I found that Series 9 and 10 data was missing from bakes.csv. After fixing these issues, I merged the datasets using left_join() on first_name, series, and episode, rearranged the columns, and sorted the data by series and episode. The final dataset was exported as bakes_total.csv.
+
+Summary of the Final Dataset:
+The final dataset contains information for Series 1 to 8, with key variables like baker_age, baker_occupation, signature_bake, show_stopper, technical, and results. It includes r ncol(bakes_total) variables and r nrow(bakes_total) observations.
+
+Issues Identified:
+Name inconsistency: Corrected "Jo" to "Joanne".
+Missing data: Series 9 and 10 data were absent from bakes.csv.
+
+```{r}
+bakes_stars =
+  bakes_total |>
+  filter(series %in% c(5,6,7,8,9,10), result %in% c("STAR BAKER", "WINNER"))
+```
+In many seasons, the final winner was predictable, such as Richard Burr (Season 5) and Nadiya Hussain (Season 6), who were named "Star Baker" multiple times, while in contrast, David Atherton (Season 10) was a surprise winner, as he did not win any "Star Baker" titles before the final.
+
+```{r}
+viewers = 
+  read_csv('./viewers.csv', na = c("NA", ".", "")) |>
+  janitor::clean_names() |> 
+  pivot_longer(
+    cols = series_1:series_10,
+    names_to = "series",
+    values_to = "viewer"
+  ) |> 
+   mutate(series = readr::parse_number(series)) |>
+  relocate(series) |>
+  arrange(series, episode)
+
+head(viewers, 10)
+
+viewers |> 
+  filter(series == 1) |> 
+  summarise(mean(viewer, na.rm = TRUE))
+
+viewers |> 
+  filter(series == 5) |> 
+  summarise(mean(viewer, na.rm = TRUE))
+```
+
+The average viewship in season 1 is 2.77 and season 5 is 10.0. 
 
